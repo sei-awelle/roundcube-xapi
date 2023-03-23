@@ -1,0 +1,2 @@
+<?php
+$labels['name'] = 'xAPI';
