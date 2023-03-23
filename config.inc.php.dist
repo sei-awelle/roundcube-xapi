@@ -4,10 +4,9 @@
  * xAPI configuration file
  */
 
-// In order to enable xAPI configure an array like the global
-// example below. 
+// In order to enable xAPI configure an array
 
-$config['xapi']['global'] = [
+$config['xapi'] = [
 
     // URL for LRS
     'lrs_endpoint' => 'http://example.com/xapi/statements',
@@ -16,9 +15,9 @@ $config['xapi']['global'] = [
     // LRS password or API secret for given username
     'lrs_password' => 'password',
     // Identify users by email
-    'actor_email' => 'http://example.com',
+    'actor_email' => 'true',
     // Identify users by username
-    'actor_username' => 'http://example.com',
+    'actor_username' => 'false',
 
 
 ];

@@ -1,0 +1,35 @@
+{
+  "name": "roundcube/xapi",
+  "description": "Adds xAPI to roundcube",
+  "keywords": ["xapi"],
+  "homepage": "https://www.cert.org/",
+  "license": "GPL-3.0",
+  "type": "roundcube-plugin",
+  "version": "1.0",
+  "authors": [
+    {
+      "name": "Adam Welle",
+      "email": "arwelle@cert.org",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.0",
+    "roundcube/plugin-installer": ">=0.1.2",
+    "php-xapi/symfony-serializer": "2.1.0"
+  },
+  "extra": {
+    "roundcube": {
+      "min-version": "1.6"
+    }
+  },
+  "minimum-stability": "dev",
+  "config": {
+    "platform" : {
+      "php": "7.0"
+    },
+    "allow-plugins": {
+      "roundcube/plugin-installer": true
+    }
+  }
+}
