@@ -10,7 +10,8 @@ use Xabbuh\XApi\Model\InverseFunctionalIdentifier;
 use Xabbuh\XApi\Model\IRI;
 use Xabbuh\XApi\Model\Verb;
 use Xabbuh\XApi\Model\Activity;
-
+use Xabbuh\XApi\Model\LanguageMap;
+use Xabbuh\XApi\Model\Context;
 
 
 class xapi extends rcube_plugin
@@ -74,7 +75,6 @@ class xapi extends rcube_plugin
 		$to_names = preg_replace('/ , /', ',', $to_names);
 		$to_names = trim($to_names);
 
-		
 		// convert from name to email address
 		$result = $db->query("SELECT name FROM contacts WHERE email = '$from_orig'");
 		if ($db->is_error($result))
@@ -108,13 +108,19 @@ class xapi extends rcube_plugin
 
 		foreach ($to_names as $to_name) {
 
-                        $actor = "arwelle";
-                        $verb = "read";
                         $object = $args['message'];
                         $sf = new StatementFactory();
-                        $sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user"))));
-                        $sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent')));
-                        $sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $from_name));
+			$languageMap = new LanguageMap();
+			$map = $languageMap->withEntry("en-US", "sent");
+			$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $map));
+			$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+		        $context = new Context();
+			$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
+			//$group = new Group();
+			//$context->withTeam($group);
+		        $sf->withContext($platformContext);
+
 
                         $statement = $sf->createStatement();
                         //$statement = new Statement(null, $actor, $verb, $object);
@@ -159,9 +165,6 @@ class xapi extends rcube_plugin
 	        // Get Subject Value
 	        $subject = $message->get_header('subject');
 	        $parsed_subject = substr($subject, strpos($subject, "]") + 2);
-	        // Get Date Value
-	        $date_str = $message->get_header('Date');
-	        $timestamp = date('Y-m-d H:i:s', strtotime($date_str)) . '+00';
 
                 // build xapi client
                 $this->build_client();
@@ -170,14 +173,18 @@ class xapi extends rcube_plugin
 		foreach ($to_array as $to) {
 			$to = trim($to);
 
-
-			$actor = "arwelle";
-			$verb = "read";
 			$object = $args['message'];
 			$sf = new StatementFactory();
-			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user"))));
-		        $sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read')));
-		        $sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $logged_user));
+			$languageMap = new LanguageMap();
+			$map = $languageMap->withEntry("en-US", "read");
+			$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read'), $map));
+			$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+			$context = new Context();
+			$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
+			//$group = new Group();
+			//$context->withTeam($group);
+		        $sf->withContext($platformContext);
 
 			$statement = $sf->createStatement();
 			//$statement = new Statement(null, $actor, $verb, $object);
