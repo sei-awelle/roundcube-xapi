@@ -9,7 +9,7 @@
 $config['xapi'] = [
 
     // URL for LRS
-    'lrs_endpoint' => 'http://example.com/xapi/statements',
+    'lrs_endpoint' => 'http://example.com/xapi',
     // LRS username, credential ID, or API key
     'lrs_username' => 'admin',
     // LRS password or API secret for given username

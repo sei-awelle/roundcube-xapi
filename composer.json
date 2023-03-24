@@ -16,7 +16,9 @@
   "require": {
     "php": ">=7.0",
     "roundcube/plugin-installer": ">=0.1.2",
-    "php-xapi/symfony-serializer": "2.1.0"
+    "symfony/http-client": "*",
+    "php-xapi/client": "0.6.0",
+    "php-http/discovery": "1.x-dev"
   },
   "extra": {
     "roundcube": {
@@ -26,10 +28,11 @@
   "minimum-stability": "dev",
   "config": {
     "platform" : {
-      "php": "7.0"
+      "php": "7.3"
     },
     "allow-plugins": {
-      "roundcube/plugin-installer": true
+      "roundcube/plugin-installer": true,
+      "php-http/discovery": true
     }
   }
 }
