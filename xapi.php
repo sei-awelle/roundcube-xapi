@@ -54,6 +54,10 @@ class xapi extends rcube_plugin
 	{
 		$db = rcmail::get_instance()->get_dbh();
 
+		//Get user who is actually sending the email
+                $rcmail = rcmail::get_instance();
+                $user = $rcmail->user->get_username();
+
 		$headers = $args['message']->headers();
 		$subject = $headers['Subject'];
 		$from_orig = $headers['From'];
@@ -61,13 +65,15 @@ class xapi extends rcube_plugin
 		$time_sent = $headers['Date'];
 
 		// get just the to emails
-		preg_match('/<(.+?)>/', $to_orig, $matches);
-		$to_emails = implode(',', $matches);
+		preg_match_all('/<(.+?)>/', $to_orig, $matches);
+		//$to_emails = implode(',', $matches);
+		 $to_emails = $matches[1];
 
 		// get just the to names
 		$to_names = preg_replace('/<(.+?)>/', '', $to_orig);
 		$to_names = preg_replace('/ , /', ',', $to_names);
 		$to_names = trim($to_names);
+
 		
 		// convert from name to email address
 		$result = $db->query("SELECT name FROM contacts WHERE email = '$from_orig'");
@@ -75,23 +81,49 @@ class xapi extends rcube_plugin
 		{
 			rcube::raise_error([
 				'code' => 605, 'line' => __LINE__, 'file' => __FILE__, 
-				'message' => "xapi: failed to pull name from database."
+				'message' => "message_history: failed to pull name from database."
 			], true, false);
 		}
 		$records = $db->fetch_assoc($result);
 		$from_name = $records['name'];
 
+                // convert to email addresses to names
+                $to_names = array();
+                foreach ($to_emails as $to_email) {
+                        $result = $db->query("SELECT name FROM contacts WHERE email = '$to_email'");
+                        if ($db->is_error($result))
+                        {
+                                rcube::raise_error([
+                                        'code' => 605, 'line' => __LINE__, 'file' => __FILE__,
+                                        'message' => "message_history: failed to pull name from database."
+                                ], true, false);
+                        }
+                        $records = $db->fetch_assoc($result);
+                        $to_names[] = $records['name'];
+                }
+
 		// build xapi client
 		$this->build_client();
 		$statementsApiClient = $this->xApiClient->getStatementsApiClient();
 
-		$actor = "arwelle";
-		$verb = "read";
-		$object = $args['message'];
-		//$statement = new Statement(null, $actor, $verb, $object);
+		foreach ($to_names as $to_name) {
 
-		// store a single Statement
-		//$statementsApiClient->storeStatement($statement);
+                        $actor = "arwelle";
+                        $verb = "read";
+                        $object = $args['message'];
+                        $sf = new StatementFactory();
+                        $sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user"))));
+                        $sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent')));
+                        $sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+
+                        $statement = $sf->createStatement();
+                        //$statement = new Statement(null, $actor, $verb, $object);
+
+                        // store a single Statement
+			$statementsApiClient->storeStatement($statement);
+
+                }
+                // TODO maye all statements to array and send multiple at once right here
 
 		return $args;
 	}
@@ -143,9 +175,9 @@ class xapi extends rcube_plugin
 			$verb = "read";
 			$object = $args['message'];
 			$sf = new StatementFactory();
-			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString('mailto:arwelle@cert.org'))));
-		        $sf->withVerb(new Verb(IRI::fromString('http://tincanapi.com/conformancetest/verbid')));
-		        $sf->withObject(new Activity(IRI::fromString('http://tincanapi.com/conformancetest/activityid')));
+			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user"))));
+		        $sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read')));
+		        $sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
 
 			$statement = $sf->createStatement();
 			//$statement = new Statement(null, $actor, $verb, $object);
