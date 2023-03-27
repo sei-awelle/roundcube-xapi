@@ -121,12 +121,16 @@ class xapi extends rcube_plugin
 			//$context->withTeam($group);
 		        $sf->withContext($platformContext);
 
-
                         $statement = $sf->createStatement();
                         //$statement = new Statement(null, $actor, $verb, $object);
 
                         // store a single Statement
-			$statementsApiClient->storeStatement($statement);
+			try {
+				$statementsApiClient->storeStatement($statement);
+			} catch (Exception $e) {
+				$date = new DateTime();
+				
+			}
 
                 }
                 // TODO maye all statements to array and send multiple at once right here
@@ -188,9 +192,13 @@ class xapi extends rcube_plugin
 
 			$statement = $sf->createStatement();
 			//$statement = new Statement(null, $actor, $verb, $object);
-
-			// store a single Statement
-			$statementsApiClient->storeStatement($statement);
+                        // store a single Statement
+			try {
+				$statementsApiClient->storeStatement($statement);
+			} catch (Exception $e) {
+				$date = new DateTime();
+				
+			}
 		}
 		// TODO maye all statements to array and send multiple at once right here
 
