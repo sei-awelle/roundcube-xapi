@@ -11,7 +11,7 @@ use Xabbuh\XApi\Model\Activity;
 use Xabbuh\XApi\Model\LanguageMap;
 use Xabbuh\XApi\Model\Context;
 use Xabbuh\XApi\Model\Definition;
-
+use Xabbuh\XApi\Model\IRL;
 
 class xapi extends rcube_plugin
 {
@@ -133,7 +133,8 @@ class xapi extends rcube_plugin
 		$mapName = $languageMap->withEntry('en-US', $subject);
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
-		$definition = new Definition($mapName, $mapDesc, $type);
+		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
+		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
 		$imap = "imap://" . $this->rcube->config->get('imap_host');
 		$id = IRI::fromString($imap . "/" . $message_id);
 		$activity = new Activity($id, $definition);
@@ -208,7 +209,8 @@ class xapi extends rcube_plugin
 		$mapName = $languageMap->withEntry('en-US', $parsed_subject);
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
-		$definition = new Definition($mapName, $mapDesc, $type);
+		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
+		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
 		$imap = "imap://" . $this->rcube->config->get('imap_host');
 		$id = IRI::fromString($imap . "/" . $message_id);
 		$activity = new Activity($id, $definition);
