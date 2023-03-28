@@ -12,6 +12,7 @@ use Xabbuh\XApi\Model\Verb;
 use Xabbuh\XApi\Model\Activity;
 use Xabbuh\XApi\Model\LanguageMap;
 use Xabbuh\XApi\Model\Context;
+use Xabbuh\XApi\Model\Definition;
 
 
 class xapi extends rcube_plugin
@@ -108,14 +109,15 @@ class xapi extends rcube_plugin
 
 		foreach ($to_names as $to_name) {
 
-                        $object = $args['message'];
+                        $message = $args['message'];
                         $sf = new StatementFactory();
 			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $from_name));
 			$languageMap = new LanguageMap();
 			$map = $languageMap->withEntry("en-US", "sent");
 			$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $map));
 			$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
-		        $context = new Context();
+			$context = new Context();
+			$context->withLanguage('en-US');
 			$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
 			//$group = new Group();
 			//$context->withTeam($group);
@@ -128,7 +130,6 @@ class xapi extends rcube_plugin
 			try {
 				$statementsApiClient->storeStatement($statement);
 			} catch (Exception $e) {
-				$date = new DateTime();
 				
 			}
 
@@ -174,33 +175,51 @@ class xapi extends rcube_plugin
                 $this->build_client();
                 $statementsApiClient = $this->xApiClient->getStatementsApiClient();
 
-		foreach ($to_array as $to) {
-			$to = trim($to);
+		$message = $args['message'];
 
-			$object = $args['message'];
-			$sf = new StatementFactory();
-			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $logged_user));
-			$languageMap = new LanguageMap();
-			$map = $languageMap->withEntry("en-US", "read");
-			$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read'), $map));
-			$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
-			$context = new Context();
-			$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
-			//$group = new Group();
-			//$context->withTeam($group);
-		        $sf->withContext($platformContext);
+		// set actor
+		$sf = new StatementFactory();
+		$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $logged_user));
 
-			$statement = $sf->createStatement();
-			//$statement = new Statement(null, $actor, $verb, $object);
-                        // store a single Statement
-			try {
-				$statementsApiClient->storeStatement($statement);
-			} catch (Exception $e) {
-				$date = new DateTime();
-				
-			}
+		// set verb
+		$languageMap = new LanguageMap();
+		$mapRead = $languageMap->withEntry("en-US", "read");
+		$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read'), $mapRead));
+
+		// set object
+		$mapName = $languageMap->withEntry('en-US', $parsed_subject);
+		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
+		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
+		$definition = new Definition($mapName, $mapDesc, $type);
+		$imap = "imap://" . $this->rcube->config->get('imap_host');
+		$id = IRI::fromString($imap . "/" . $message->uid);
+		//$id = IRI::fromString("https://" . $_SERVER['SERVER_NAME'] . "/" . $message->uid);
+		// getting error: regex partial match when using the message uid
+		$activity = new Activity($id, $definition);
+		$sf->withObject($activity);
+
+		// with context
+		$context = new Context();
+		$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
+		$languageContext = $platformContext->withLanguage('en-US');
+		//$group = new Group();
+		//$context->withTeam($group);
+	        $sf->withContext($languageContext);
+
+		// create and store statement
+		$statement = $sf->createStatement();
+		try {
+			$statementsApiClient->storeStatement($statement);
+		} catch (Exception $e) {
+			print_r($e->getMessage());
+			$m = $e->getMessage();
+			rcube::console("xapi: " . json_decode($m)->error->message);
+			rcube::raise_error([
+				'line' => __LINE__,
+				'file' => __FILE__, 
+				'message' => "xapi: $m"
+			], true, false);
 		}
-		// TODO maye all statements to array and send multiple at once right here
 
 		return $args;
 	}
