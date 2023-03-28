@@ -40,16 +40,16 @@ class xapi extends rcube_plugin
 
 	private function build_client()
 	{
-                // build xapi client
+		// build xapi client
 		$this->rcube = rcube::get_instance();
 		$this->load_config();
 		$config = $this->rcube->config->get('xapi');
 	
-                $builder = new XApiClientBuilder();
-                $this->xApiClient = $builder->setBaseUrl($config['lrs_endpoint'])
-                    ->setVersion('1.0.0')
-                    ->setAuth($config['lrs_username'], $config['lrs_password'])
-                    ->build();
+		$builder = new XApiClientBuilder();
+		$this->xApiClient = $builder->setBaseUrl($config['lrs_endpoint'])
+		    ->setVersion('1.0.0')
+		    ->setAuth($config['lrs_username'], $config['lrs_password'])
+		    ->build();
 	}
 
 	public function log_sent_message($args)
@@ -57,8 +57,8 @@ class xapi extends rcube_plugin
 		$db = rcmail::get_instance()->get_dbh();
 
 		//Get user who is actually sending the email
-                $rcmail = rcmail::get_instance();
-                $user = $rcmail->user->get_username();
+		$rcmail = rcmail::get_instance();
+		$user = $rcmail->user->get_username();
 
 		$headers = $args['message']->headers();
 		$subject = $headers['Subject'];
@@ -88,53 +88,48 @@ class xapi extends rcube_plugin
 		$records = $db->fetch_assoc($result);
 		$from_name = $records['name'];
 
-                // convert to email addresses to names
-                $to_names = array();
-                foreach ($to_emails as $to_email) {
-                        $result = $db->query("SELECT name FROM contacts WHERE email = '$to_email'");
-                        if ($db->is_error($result))
-                        {
-                                rcube::raise_error([
-                                        'code' => 605, 'line' => __LINE__, 'file' => __FILE__,
-                                        'message' => "message_history: failed to pull name from database."
-                                ], true, false);
-                        }
-                        $records = $db->fetch_assoc($result);
-                        $to_names[] = $records['name'];
-                }
+		// convert to email addresses to names
+		$to_names = array();
+		foreach ($to_emails as $to_email) {
+			$result = $db->query("SELECT name FROM contacts WHERE email = '$to_email'");
+			if ($db->is_error($result))
+			{
+				rcube::raise_error([
+					'code' => 605, 'line' => __LINE__, 'file' => __FILE__,
+					'message' => "message_history: failed to pull name from database."
+				], true, false);
+			}
+			$records = $db->fetch_assoc($result);
+			$to_names[] = $records['name'];
+		}
 
 		// build xapi client
 		$this->build_client();
 		$statementsApiClient = $this->xApiClient->getStatementsApiClient();
 
-		foreach ($to_names as $to_name) {
+		$message = $args['message'];
+		$sf = new StatementFactory();
+		$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $from_name));
+		$languageMap = new LanguageMap();
+		$map = $languageMap->withEntry("en-US", "sent");
+		$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $map));
+		$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
+		$context = new Context();
+		$context->withLanguage('en-US');
+		$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
+		//$group = new Group();
+		//$context->withTeam($group);
+		$sf->withContext($platformContext);
 
-                        $message = $args['message'];
-                        $sf = new StatementFactory();
-			$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $from_name));
-			$languageMap = new LanguageMap();
-			$map = $languageMap->withEntry("en-US", "sent");
-			$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $map));
-			$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
-			$context = new Context();
-			$context->withLanguage('en-US');
-			$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
-			//$group = new Group();
-			//$context->withTeam($group);
-		        $sf->withContext($platformContext);
+		$statement = $sf->createStatement();
+		//$statement = new Statement(null, $actor, $verb, $object);
 
-                        $statement = $sf->createStatement();
-                        //$statement = new Statement(null, $actor, $verb, $object);
-
-                        // store a single Statement
-			try {
-				$statementsApiClient->storeStatement($statement);
-			} catch (Exception $e) {
-				
-			}
-
-                }
-                // TODO maye all statements to array and send multiple at once right here
+		// store a single Statement
+		try {
+			$statementsApiClient->storeStatement($statement);
+		} catch (Exception $e) {
+			
+		}
 
 		return $args;
 	}
@@ -147,33 +142,33 @@ class xapi extends rcube_plugin
 		$message = $args['message'];
 
 
-	        //Get user who is actually reading the email
-	        $rcmail = rcmail::get_instance();
-	        $user = $rcmail->user->get_username();
-	        $convert_user = $db->query("SELECT name FROM contacts WHERE email = '$user'");
-	        $records = $db->fetch_assoc($convert_user);
-	        $logged_user = $records['name'];
+		//Get user who is actually reading the email
+		$rcmail = rcmail::get_instance();
+		$user = $rcmail->user->get_username();
+		$convert_user = $db->query("SELECT name FROM contacts WHERE email = '$user'");
+		$records = $db->fetch_assoc($convert_user);
+		$logged_user = $records['name'];
 
-	        // Get To User Value
-	        $to_orig = $message->get_header('to');
-	        $to_names = preg_replace('/<(.+?)>/', '', $to_orig);
-	        $to_names = preg_replace('/ , /', ',', $to_names);
-	        $to_names = trim($to_names);
-	        $to_array = explode(',', $to_names);
+		// Get To User Value
+		$to_orig = $message->get_header('to');
+		$to_names = preg_replace('/<(.+?)>/', '', $to_orig);
+		$to_names = preg_replace('/ , /', ',', $to_names);
+		$to_names = trim($to_names);
+		$to_array = explode(',', $to_names);
 
-	        // Get From User Value
-	        $from = $message->get_header('from');
-	        $convert_from = $db->query("SELECT name FROM contacts WHERE email = '$from'");
-	        $records = $db->fetch_assoc($convert_from);
-	        $from_name = $records['name'];
+		// Get From User Value
+		$from = $message->get_header('from');
+		$convert_from = $db->query("SELECT name FROM contacts WHERE email = '$from'");
+		$records = $db->fetch_assoc($convert_from);
+		$from_name = $records['name'];
 
-	        // Get Subject Value
-	        $subject = $message->get_header('subject');
-	        $parsed_subject = substr($subject, strpos($subject, "]") + 2);
+		// Get Subject Value
+		$subject = $message->get_header('subject');
+		$parsed_subject = substr($subject, strpos($subject, "]") + 2);
 
-                // build xapi client
-                $this->build_client();
-                $statementsApiClient = $this->xApiClient->getStatementsApiClient();
+		// build xapi client
+		$this->build_client();
+		$statementsApiClient = $this->xApiClient->getStatementsApiClient();
 
 		$message = $args['message'];
 
@@ -204,7 +199,7 @@ class xapi extends rcube_plugin
 		$languageContext = $platformContext->withLanguage('en-US');
 		//$group = new Group();
 		//$context->withTeam($group);
-	        $sf->withContext($languageContext);
+		$sf->withContext($languageContext);
 
 		// create and store statement
 		$statement = $sf->createStatement();
