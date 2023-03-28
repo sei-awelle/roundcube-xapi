@@ -28,9 +28,9 @@ class xapi extends rcube_plugin
 		$this->load_config();
 
 		// install user hooks
-		$this->add_hook('message_ready', array($this, 'log_sent_message'));
+		//$this->add_hook('message_ready', array($this, 'log_sent_message'));
 		$this->add_hook('message_read', [$this, 'log_read_message']);
-		//$this->add_hook('message_sent', [$this, 'log_sent_message']);
+		$this->add_hook('message_sent', [$this, 'log_sent_message']);
 		//$this->add_hook('login_after', [$this, 'log_login']);
 		//$this->add_hook('oauth_login', [$this, 'log_oauth_login']);
 		//$this->add_hook('refresh', [$this, 'log_refresh']);
@@ -74,12 +74,12 @@ class xapi extends rcube_plugin
 		$to_orig = $headers['To'];
 		preg_match('/<(.+?)@.+>/', $headers['Message-ID'], $matches);
 		$message_id = $matches[1];
+		//rcube::console("xapi: $message_id");
 
 		// get just the to emails
 		preg_match_all('/<(.+?)>/', $to_orig, $matches);
 		//$to_emails = implode(',', $matches);
 		$to_emails = $matches[1];
-		//rcube::console("xapi: $message_id");
 
 		// get just the to names
 		$to_names = preg_replace('/<(.+?)>/', '', $to_orig);
@@ -136,8 +136,6 @@ class xapi extends rcube_plugin
 		$definition = new Definition($mapName, $mapDesc, $type);
 		$imap = "imap://" . $this->rcube->config->get('imap_host');
 		$id = IRI::fromString($imap . "/" . $message_id);
-		//$id = IRI::fromString("https://" . $_SERVER['SERVER_NAME'] . "/" . $message->uid);
-		// getting error: regex partial match when using the message uid
 		$activity = new Activity($id, $definition);
 		$sf->withObject($activity);
 
@@ -213,8 +211,6 @@ class xapi extends rcube_plugin
 		$definition = new Definition($mapName, $mapDesc, $type);
 		$imap = "imap://" . $this->rcube->config->get('imap_host');
 		$id = IRI::fromString($imap . "/" . $message_id);
-		//$id = IRI::fromString("https://" . $_SERVER['SERVER_NAME'] . "/" . $message->uid);
-		// getting error: regex partial match when using the message uid
 		$activity = new Activity($id, $definition);
 		$sf->withObject($activity);
 
