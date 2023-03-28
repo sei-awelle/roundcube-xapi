@@ -2,8 +2,6 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Xabbuh\XApi\Client\XApiClientBuilder;
-use Xabbuh\XApi\Model\Statement;
-use Xabbuh\XApi\Model\Actor;
 use Xabbuh\XApi\Model\Agent;
 use Xabbuh\XApi\Model\StatementFactory;
 use Xabbuh\XApi\Model\InverseFunctionalIdentifier;
@@ -19,6 +17,7 @@ class xapi extends rcube_plugin
 {
 	public $rc;
 	private $xApiClient;
+	private $context;
 
     	public function init()
 	{
@@ -35,7 +34,7 @@ class xapi extends rcube_plugin
 		//$this->add_hook('login_after', [$this, 'log_login']);
 		//$this->add_hook('oauth_login', [$this, 'log_oauth_login']);
 		//$this->add_hook('refresh', [$this, 'log_refresh']);
-		
+
 	}
 
 	private function build_client()
@@ -44,12 +43,21 @@ class xapi extends rcube_plugin
 		$this->rcube = rcube::get_instance();
 		$this->load_config();
 		$config = $this->rcube->config->get('xapi');
-	
+
 		$builder = new XApiClientBuilder();
 		$this->xApiClient = $builder->setBaseUrl($config['lrs_endpoint'])
 		    ->setVersion('1.0.0')
 		    ->setAuth($config['lrs_username'], $config['lrs_password'])
 		    ->build();
+	}
+
+	private function build_context() {
+		$context = new Context();
+		$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
+		$languageContext = $platformContext->withLanguage('en-US');
+		//$group = new Group();
+		//$context->withTeam($group);
+		$this->context = $languageContext;
 	}
 
 	public function log_sent_message($args)
@@ -64,12 +72,14 @@ class xapi extends rcube_plugin
 		$subject = $headers['Subject'];
 		$from_orig = $headers['From'];
 		$to_orig = $headers['To'];
-		$time_sent = $headers['Date'];
+		preg_match('/<(.+?)@.+>/', $headers['Message-ID'], $matches);
+		$message_id = $matches[1];
 
 		// get just the to emails
 		preg_match_all('/<(.+?)>/', $to_orig, $matches);
 		//$to_emails = implode(',', $matches);
-		 $to_emails = $matches[1];
+		$to_emails = $matches[1];
+		//rcube::console("xapi: $message_id");
 
 		// get just the to names
 		$to_names = preg_replace('/<(.+?)>/', '', $to_orig);
@@ -81,8 +91,8 @@ class xapi extends rcube_plugin
 		if ($db->is_error($result))
 		{
 			rcube::raise_error([
-				'code' => 605, 'line' => __LINE__, 'file' => __FILE__, 
-				'message' => "message_history: failed to pull name from database."
+				'code' => 605, 'line' => __LINE__, 'file' => __FILE__,
+				'message' => "xapi: failed to pull name from database."
 			], true, false);
 		}
 		$records = $db->fetch_assoc($result);
@@ -96,7 +106,7 @@ class xapi extends rcube_plugin
 			{
 				rcube::raise_error([
 					'code' => 605, 'line' => __LINE__, 'file' => __FILE__,
-					'message' => "message_history: failed to pull name from database."
+					'message' => "xapi: failed to pull name from database."
 				], true, false);
 			}
 			$records = $db->fetch_assoc($result);
@@ -107,28 +117,41 @@ class xapi extends rcube_plugin
 		$this->build_client();
 		$statementsApiClient = $this->xApiClient->getStatementsApiClient();
 
-		$message = $args['message'];
+
 		$sf = new StatementFactory();
+
+		// set actor
 		$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $from_name));
+
+		// set verb
 		$languageMap = new LanguageMap();
-		$map = $languageMap->withEntry("en-US", "sent");
-		$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $map));
-		$sf->withObject(new Activity(IRI::fromString('http://id.tincanapi.com/activitytype/email')));
-		$context = new Context();
-		$context->withLanguage('en-US');
-		$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
-		//$group = new Group();
-		//$context->withTeam($group);
-		$sf->withContext($platformContext);
+		$mapSent = $languageMap->withEntry("en-US", "sent");
+		$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/sent'), $mapSent));
+
+
+		// set object
+		$mapName = $languageMap->withEntry('en-US', $subject);
+		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
+		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
+		$definition = new Definition($mapName, $mapDesc, $type);
+		$imap = "imap://" . $this->rcube->config->get('imap_host');
+		$id = IRI::fromString($imap . "/" . $message_id);
+		//$id = IRI::fromString("https://" . $_SERVER['SERVER_NAME'] . "/" . $message->uid);
+		// getting error: regex partial match when using the message uid
+		$activity = new Activity($id, $definition);
+		$sf->withObject($activity);
+
+
+		// with context
+		$sf->withContext($this->context);
 
 		$statement = $sf->createStatement();
-		//$statement = new Statement(null, $actor, $verb, $object);
 
 		// store a single Statement
 		try {
 			$statementsApiClient->storeStatement($statement);
 		} catch (Exception $e) {
-			
+			$this->xapi_error($e);
 		}
 
 		return $args;
@@ -140,7 +163,9 @@ class xapi extends rcube_plugin
 	{
 		$db = rcmail::get_instance()->get_dbh();
 		$message = $args['message'];
-
+		preg_match('/<(.+?)@.+>/', $message->get_header('Message-ID'), $matches);
+		$message_id = $matches[1];
+		//rcube::console("xapi: " . $message_id);
 
 		//Get user who is actually reading the email
 		$rcmail = rcmail::get_instance();
@@ -154,7 +179,6 @@ class xapi extends rcube_plugin
 		$to_names = preg_replace('/<(.+?)>/', '', $to_orig);
 		$to_names = preg_replace('/ , /', ',', $to_names);
 		$to_names = trim($to_names);
-		$to_array = explode(',', $to_names);
 
 		// Get From User Value
 		$from = $message->get_header('from');
@@ -172,8 +196,9 @@ class xapi extends rcube_plugin
 
 		$message = $args['message'];
 
-		// set actor
 		$sf = new StatementFactory();
+
+		// set actor
 		$sf->withActor(new Agent(InverseFunctionalIdentifier::withMbox(IRI::fromString("mailto:$user")), $logged_user));
 
 		// set verb
@@ -187,39 +212,35 @@ class xapi extends rcube_plugin
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
 		$definition = new Definition($mapName, $mapDesc, $type);
 		$imap = "imap://" . $this->rcube->config->get('imap_host');
-		$id = IRI::fromString($imap . "/" . $message->uid);
+		$id = IRI::fromString($imap . "/" . $message_id);
 		//$id = IRI::fromString("https://" . $_SERVER['SERVER_NAME'] . "/" . $message->uid);
 		// getting error: regex partial match when using the message uid
 		$activity = new Activity($id, $definition);
 		$sf->withObject($activity);
 
 		// with context
-		$context = new Context();
-		$platformContext = $context->withPlatform($_SERVER['SERVER_NAME']);
-		$languageContext = $platformContext->withLanguage('en-US');
-		//$group = new Group();
-		//$context->withTeam($group);
-		$sf->withContext($languageContext);
+		$sf->withContext($this->context);
 
 		// create and store statement
 		$statement = $sf->createStatement();
 		try {
 			$statementsApiClient->storeStatement($statement);
 		} catch (Exception $e) {
-			print_r($e->getMessage());
-			$m = $e->getMessage();
-			rcube::console("xapi: " . json_decode($m)->error->message);
-			rcube::raise_error([
-				'line' => __LINE__,
-				'file' => __FILE__, 
-				'message' => "xapi: $m"
-			], true, false);
+			$this->xapi_error($e);
 		}
 
 		return $args;
 	}
 
-
+	private function xapi_error(Exception $e) {
+		$m = $e->getMessage();
+		rcube::console("xapi: " . json_decode($m)->error->message);
+		rcube::raise_error([
+			'line' => __LINE__,
+			'file' => __FILE__,
+			'message' => "xapi: $m"
+		], true, false);
+	}
 
 }
 ?>
