@@ -130,13 +130,15 @@ class xapi extends rcube_plugin
 
 
 		// set object
-		$mapName = $languageMap->withEntry('en-US', $subject);
+		#$mapName = $languageMap->withEntry('en-US', $subject);
+		$mapName = $languageMap->withEntry('en-US', 'Email');
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
 		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
 		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
-		$imap = "imap://" . $this->rcube->config->get('imap_host');
-		$id = IRI::fromString($imap . "/" . $message_id);
+		#$imap = "imap://" . $this->rcube->config->get('imap_host');
+		#$id = IRI::fromString($imap . "/" . $message_id);
+		$id = IRI::fromString('https://' . $_SERVER['SERVER_NAME']);
 		$activity = new Activity($id, $definition);
 		$sf->withObject($activity);
 
@@ -206,13 +208,15 @@ class xapi extends rcube_plugin
 		$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/read'), $mapRead));
 
 		// set object
-		$mapName = $languageMap->withEntry('en-US', $parsed_subject);
+		#$mapName = $languageMap->withEntry('en-US', $parsed_subject);
+		$mapName = $languageMap->withEntry('en-US', 'Email');
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
 		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
 		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
-		$imap = "imap://" . $this->rcube->config->get('imap_host');
-		$id = IRI::fromString($imap . "/" . $message_id);
+		#$imap = "imap://" . $this->rcube->config->get('imap_host');
+		#$id = IRI::fromString($imap . "/" . $message_id);
+		$id = IRI::fromString('https://' . $_SERVER['SERVER_NAME']);
 		$activity = new Activity($id, $definition);
 		$sf->withObject($activity);
 
