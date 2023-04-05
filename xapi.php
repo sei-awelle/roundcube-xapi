@@ -134,7 +134,7 @@ class xapi extends rcube_plugin
 		$mapName = $languageMap->withEntry('en-US', 'Email');
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
-		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
+		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . "?_task=message_history&_action=plugin.message_history&search=$message_id");
 		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
 		#$imap = "imap://" . $this->rcube->config->get('imap_host');
 		#$id = IRI::fromString($imap . "/" . $message_id);
@@ -212,7 +212,7 @@ class xapi extends rcube_plugin
 		$mapName = $languageMap->withEntry('en-US', 'Email');
 		$mapDesc = $languageMap->withEntry('en-US', 'An email message sent or read during the exercise event');
 		$type = IRI::fromString('http://id.tincanapi.com/activitytype/email');
-		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . '?_task=message_history&_action=plugin.message_history');
+		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . "?_task=message_history&_action=plugin.message_history&search=$message_id");
 		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
 		#$imap = "imap://" . $this->rcube->config->get('imap_host');
 		#$id = IRI::fromString($imap . "/" . $message_id);
