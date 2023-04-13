@@ -1,3 +1,18 @@
+<?php
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Xabbuh\XApi\Client\XApiClientBuilder;
+use Xabbuh\XApi\Model\Agent;
+use Xabbuh\XApi\Model\StatementFactory;
+use Xabbuh\XApi\Model\InverseFunctionalIdentifier;
+use Xabbuh\XApi\Model\IRI;
+use Xabbuh\XApi\Model\Verb;
+use Xabbuh\XApi\Model\Activity;
+use Xabbuh\XApi\Model\LanguageMap;
+use Xabbuh\XApi\Model\Context;
+use Xabbuh\XApi\Model\Definition;
+use Xabbuh\XApi\Model\IRL;
+
 class xapi extends rcube_plugin
 {
 	public $rc;
@@ -56,16 +71,16 @@ class xapi extends rcube_plugin
 	{
     		//$languageMap = new LanguageMap();
     		$mapRead = $languageMap->withEntry("en-US", $x_verb);
-    		$verb = new Verb(IRI::fromString("https://w3id.org/xapi/dod-isd/verbs/'$x_verb'"), $mapRead);
+    		$verb = new Verb(IRI::fromString("https://w3id.org/xapi/dod-isd/verbs/$x_verb"), $mapRead);
 		$sf->withVerb($verb);
 		return $sf;
 	}	
 
-	private function set_object($languageMap, $x_activity, $x_action, $x_search, $sf)
+	private function set_object($languageMap, $x_action, $x_search, $sf)
 	{
 		$mapName = $languageMap->withEntry('en-US', 'Use');
 		$mapDesc = $languageMap->withEntry('en-US', $x_action);
-		$type = IRI::fromString("http://id.tincanapi.com/activity/'$x_activity'");
+		$type = IRI::fromString("http://id.tincanapi.com/activity/login");
 		$moreInfo = IRL::fromString('https://' . $_SERVER['SERVER_NAME'] . "?_task=message_history&_action=plugin.message_history&search=$x_search");
 		$definition = new Definition($mapName, $mapDesc, $type, $moreInfo);
 		$id = IRI::fromString('https://' . $_SERVER['SERVER_NAME']);	
@@ -215,7 +230,7 @@ class xapi extends rcube_plugin
     	//$mapLogin = $languageMap->withEntry("en-US", "refresh");
     	//$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/refresh'), $mapLogin));
 	$verb = 'refresh';
-	$sf = $this->set_verb($languageMap, $verb, $sf);
+	$sf = $this->set_verb($languageMap, $sf);
 
     	// Set object
     	//$mapName = $languageMap->withEntry('en-US', 'Use');
@@ -286,7 +301,7 @@ class xapi extends rcube_plugin
 		//$activity = new Activity($id, $definition);
 		//$sf->withObject($activity);
 		$action = 'A user logged in during the exercise event';
-		$statement = $this->set_object($languageMap, $verb, $action, $user, $sf);
+		$statement = $this->set_object($languageMap, $action, $user, $sf);
 		
 		// Set context
     		//$sf->withContext($this->context);
