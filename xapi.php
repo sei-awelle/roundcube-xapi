@@ -230,7 +230,7 @@ class xapi extends rcube_plugin
         //$mapLogin = $languageMap->withEntry("en-US", "refresh");
         //$sf->withVerb(new Verb(IRI::fromString('https://w3id.org/xapi/dod-isd/verbs/refresh'), $mapLogin));
         $verb = 'refresh';
-        $sf = $this->set_verb($languageMap, $sf);
+        $sf = $this->set_verb($languageMap, $verb, $sf);
 
         // Set object
         //$mapName = $languageMap->withEntry('en-US', 'Use');
