@@ -256,7 +256,7 @@ class xapi extends rcube_plugin
         //$this->xapi_error($e);
         //}
 
-        $this->send_statement($statement, $statementApiClient);
+        $this->send_statement($statement, $statementsApiClient);
 
         return $args;
     }
