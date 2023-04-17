@@ -246,7 +246,7 @@ class xapi extends rcube_plugin
         //$sf->withContext($this->context);
 
         $action = 'A user refreshed during the exercise event';
-        $statement = $this->set_object($languageMap, $verb, $action, $user, $sf);
+        $statement = $this->set_object($languageMap, $action, $user, $sf);
     
         // Send statement
         // $statement = $sf->createStatement();
