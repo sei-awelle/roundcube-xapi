@@ -397,7 +397,6 @@ class xapi extends rcube_plugin
     private function xapi_error(Exception $e)
     {
         $m = $e->getMessage();
-        rcube::console("xapi: " . json_decode($m)->error->message);
         rcube::raise_error([
             'line' => __LINE__,
             'file' => __FILE__,
